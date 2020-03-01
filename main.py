@@ -1,6 +1,48 @@
 # -*- coding: utf-8 -*-
 
+
+
 readBooks = set()
+futureBooks = set()
+libraries = []
+unreadBooks = []
+remDay = 0
+openLibs = []
+
+def partition(arr,low,high): 
+    i = ( low-1 )         # index of smaller element 
+    pivot = arr[high]     # pivot 
+  
+    for j in range(low , high): 
+  
+        # If current element is smaller than or 
+        # equal to pivot 
+        if   arr[j][1] <= pivot[1]: 
+          
+            # increment index of smaller element 
+            i = i+1 
+            arr[i],arr[j] = arr[j],arr[i] 
+  
+    arr[i+1],arr[high] = arr[high],arr[i+1] 
+    return ( i+1 ) 
+  
+# The main function that implements QuickSort 
+# arr[] --> Array to be sorted, 
+# low  --> Starting index, 
+# high  --> Ending index 
+  
+# Function to do Quick sort 
+def quickSort(arr,low,high): 
+    if low < high: 
+  
+        # pi is partitioning index, arr[p] is now 
+        # at right place 
+        pi = partition(arr,low,high) 
+  
+        # Separately sort elements before 
+        # partition and after partition 
+        quickSort(arr, low, pi-1) 
+        quickSort(arr, pi+1, high) 
 
 class Library:
     
@@ -13,22 +55,22 @@ class Library:
     def calc_score(self,unreadBooks):
         """
         total = 0
-        cnt = 0
-        for i in self.books:
-            if i not in readBooks:
-                total += bookScores[i]
-                cnt += 1
-        total = (remDay-self.signTime)*self.scan*total/(cnt)
-        """
-        return self.scan/self.signTime
+        t = (remDay-self.signTime)
+        speed = self.scan
+        
+        for i in range(t*speed):
+            
+            if i == len(self.books):
+                break
+            
+            if self.books[i] not in futureBooks:
+                total += bookScores[self.books[i]]
+        
+        return total
+"""
+        return len(self.books)
 
-libraries = []
-unreadBooks = []
-
-remDay = 0
-openLibs = []
-
-file = open("d_tough_choices.txt","r")
+file = open("c_incunabula.txt","r")
 a = file.read()
 file.close()
 lines = a.split("\n")
@@ -39,25 +81,49 @@ totalLib = int(firstLine[1])
 totalDay = int(firstLine[2])
 remDay = totalDay
 
-for i in range(totalBooks):
-    unreadBooks.append(i)
-
 bookScores = []
 
 for score in lines[1].split(" "):
     bookScores.append(int(score))
+    
+
+bookDB = []
+i = 0
+for book in bookScores:
+    bookDB.append([i,book])
+    i += 1
+    
+quickSort(bookDB, 0, len(bookDB) - 1)
+print("yay")
+bookDB.reverse()
+
+for book in bookDB:
+    unreadBooks.append(book[0])
 
 libraryLines = lines[2:]
 
+cnt = 0
 for i in range(0,totalLib):
     libraryDef = libraryLines[i*2].split(" ")
-    libraryBooks = set()
-    for book in libraryLines[i*2+1].split(" "):
-        libraryBooks.add(int(book))
-     
+
+    libraryBooks = [None] * totalBooks
     
-    library = Library(libraryBooks,int(libraryDef[1]),int(libraryDef[2]),i)
+    for book in libraryLines[i*2+1].split(" "):
+        book = int(book)
+        
+        place = unreadBooks.index(book)
+        libraryBooks[place] = book
+        
+    res = [] 
+    for val in libraryBooks: 
+        if val != None : 
+            res.append(val)
+    cnt += 1
+    print(cnt)
+    library = Library(res,int(libraryDef[1]),int(libraryDef[2]),i)
     libraries.append(library)
+    
+    
     
 
 def pickLib():
@@ -71,67 +137,27 @@ def pickLib():
             if(best < s):
                 best = s
                 maxLib = lib
+            
     return maxLib
 
-unreadBooks.sort(reverse=True)
+resultOut = {}
+libCursor = {}
 
 def selectBooks():
-
-    result = []
-    for lib in openLibs:
-        result.append((lib.libId,[]))
-        
-    for book in unreadBooks:
-        #print(book)
-        avLibs = set()
-        
-        for libNo in range(len(openLibs)):
-            if len(result[libNo][1]) < openLibs[libNo].scan:
-                if book in openLibs[libNo].books: 
-                    avLibs.add(openLibs[libNo])
-                    #print(libNo)
-        
-        if len(avLibs) > 0:
-            maxLib = 0
-            best = 0
-            
-            for avlib in avLibs:
-                
-                for i in range(avlib.scan):
-                    max
-                    
-
-                count = 0
-                for bookX in avlib.books:
-                    if bookX not in readBooks:
-                        count += 1
-                if count > best:
-                    best = count
-                    maxLib = avlib
-                    #print(maxLib)
-            for lib in result:
-                if lib[0] == maxLib.libId:
-                    lib[1].append(book)
-                    unreadBooks.remove(book)
-                    readBooks.add(book)  
-    return result
     
-
+    for lib in openLibs:
+        for i in range(lib.scan):
+            if len(lib.books) <= libCursor[lib.libId]:
+                break
+            resultOut[lib.libId].append(lib.books[libCursor[lib.libId]])
+            libCursor[lib.libId] += 1
+        
+            
 remSignDays = 0
 
-resultOut = []
-for lib in range(totalLib):
-    resultOut.append((lib,[]))
 
 for day in range(totalDay):
     a = selectBooks()
-
-    for lib in a:
-        for lib2 in resultOut:
-            if lib[0] == lib2[0]:
-                for book in lib[1]:
-                    lib2[1].append(book)
-                    
                     
     if len(openLibs) != totalLib:
         if remSignDays == 0:
@@ -139,6 +165,18 @@ for day in range(totalDay):
             
             if currentLib == 0:
                 break
+            
+            resultOut[currentLib.libId] = []
+            libCursor[currentLib.libId] = 0
+            
+            t = (remDay-currentLib.signTime)
+            speed = currentLib.scan
+        
+            for i in range(t*speed):
+                if i == len(currentLib.books):
+                    break
+                futureBooks.add(currentLib.books[i])
+            
             remSignDays = currentLib.signTime-1
             
             if remSignDays == 0:
@@ -148,24 +186,20 @@ for day in range(totalDay):
             if remSignDays == 0: 
                 openLibs.append(currentLib)
     remDay -= 1
-    print(len(openLibs))
+    #print(len(openLibs))
     print(remDay)
+
 
 out = f"{len(openLibs)}\n"
 
-for lib in openLibs:
-    out += f"{lib.libId} "
-    for lib2 in resultOut:
-        if lib2[0] == lib.libId:
-            out += f"{len(lib2[1])}\n"
-            for i in lib2[1]:
-                out += str(i) + " "
-            out += "\n"
+for k in resultOut:
+    out += f"{k} "
+    out += f"{len(resultOut[k])}\n"
+    for book in resultOut[k]:
+        out += str(book) + " "
+    out += "\n"        
 
-            
-    
-
-file = open("file.txt", "w")
+file = open("out.txt", "w")
 file.write(out)
 file.close()
 
