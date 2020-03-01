@@ -8,6 +8,7 @@ libraries = []
 unreadBooks = []
 remDay = 0
 openLibs = []
+unpickableLibs = set()
 
 def partition(arr,low,high): 
     i = ( low-1 )         # index of smaller element 
@@ -54,23 +55,25 @@ class Library:
         
     def calc_score(self,unreadBooks):
         """
-        total = 0
-        t = (remDay-self.signTime)
-        speed = self.scan
+        uniqueBookCount = 0
+        uniqueBookPoints = 0
         
+        t = (remDay-self.signTime)
+        if t < 0:
+            t = 0
+        speed = self.scan
+    
         for i in range(t*speed):
-            
             if i == len(self.books):
                 break
             
-            if self.books[i] not in futureBooks:
-                total += bookScores[self.books[i]]
-        
-        return total
-"""
-        return len(self.books)
+            if book not in readBooks:
+                uniqueBookCount += 1
+                uniqueBookPoints += bookScores[book]
+        """
+        return (len(self.books)*speed)
 
-file = open("c_incunabula.txt","r")
+file = open("e_so_many_books.txt","r")
 a = file.read()
 file.close()
 lines = a.split("\n")
@@ -92,7 +95,7 @@ i = 0
 for book in bookScores:
     bookDB.append([i,book])
     i += 1
-    
+ 
 quickSort(bookDB, 0, len(bookDB) - 1)
 print("yay")
 bookDB.reverse()
@@ -110,7 +113,7 @@ for i in range(0,totalLib):
     
     for book in libraryLines[i*2+1].split(" "):
         book = int(book)
-        
+       
         place = unreadBooks.index(book)
         libraryBooks[place] = book
         
@@ -120,6 +123,7 @@ for i in range(0,totalLib):
             res.append(val)
     cnt += 1
     print(cnt)
+    
     library = Library(res,int(libraryDef[1]),int(libraryDef[2]),i)
     libraries.append(library)
     
@@ -132,7 +136,7 @@ def pickLib():
     best = 0
     for lib in libraries:
         #print(count)
-        if lib not in openLibs:
+        if lib not in unpickableLibs:
             s = lib.calc_score(unreadBooks)
             if(best < s):
                 best = s
@@ -146,12 +150,18 @@ libCursor = {}
 def selectBooks():
     
     for lib in openLibs:
-        for i in range(lib.scan):
-            if len(lib.books) <= libCursor[lib.libId]:
-                break
-            resultOut[lib.libId].append(lib.books[libCursor[lib.libId]])
-            libCursor[lib.libId] += 1
-        
+        if len(lib.books) > libCursor[lib.libId]:
+            for i in range(lib.scan):
+                if len(lib.books) <= libCursor[lib.libId]:
+                    break
+                bk = lib.books[libCursor[lib.libId]]
+                if bk in readBooks:
+                    libCursor[lib.libId] += 1
+                    continue
+                resultOut[lib.libId].append(bk)
+                libCursor[lib.libId] += 1
+        else:
+            openLibs.remove(lib)
             
 remSignDays = 0
 
@@ -159,7 +169,7 @@ remSignDays = 0
 for day in range(totalDay):
     a = selectBooks()
                     
-    if len(openLibs) != totalLib:
+    if len(unpickableLibs) != totalLib:
         if remSignDays == 0:
             currentLib = pickLib()
             
@@ -181,16 +191,18 @@ for day in range(totalDay):
             
             if remSignDays == 0:
                 openLibs.append(currentLib)
+                unpickableLibs.add(currentLib)
         else:
             remSignDays -= 1
             if remSignDays == 0: 
                 openLibs.append(currentLib)
+                unpickableLibs.add(currentLib)
     remDay -= 1
     #print(len(openLibs))
     print(remDay)
 
 
-out = f"{len(openLibs)}\n"
+out = f"{len(unpickableLibs)}\n"
 
 for k in resultOut:
     out += f"{k} "
